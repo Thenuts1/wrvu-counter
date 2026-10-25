@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>wRVU Counter</title>
+<meta name="description" content="Log radiology exams and track professional-component work RVUs (CMS CY2026 PFS).">
+<meta name="theme-color" content="#1d4ed8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="wRVU">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<style>
+:root{
+  --bg:#f5f6f8; --card:#ffffff; --text:#111827; --muted:#6b7280; --line:#e5e7eb; --soft:#eef2ff;
+  --accent:#1d4ed8; --accent-ink:#ffffff; --danger:#b91c1c; --warn-bg:#fff7ed; --warn-ink:#9a3412; --bar:#1d4ed8; --bar2:#93c5fd;
+  --tabh:64px; --r:14px;
+  --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b1220; --card:#131c2e; --text:#e5e7eb; --muted:#94a3b8; --line:#243047; --soft:#1c2a4a;
+    --accent:#60a5fa; --accent-ink:#0b1220; --danger:#f87171; --warn-bg:#3a2410; --warn-ink:#fdba74; --bar:#60a5fa; --bar2:#1e3a8a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b1220; --card:#131c2e; --text:#e5e7eb; --muted:#94a3b8; --line:#243047; --soft:#1c2a4a;
+  --accent:#60a5fa; --accent-ink:#0b1220; --danger:#f87171; --warn-bg:#3a2410; --warn-ink:#fdba74; --bar:#60a5fa; --bar2:#1e3a8a;
+  color-scheme: dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+body{padding-bottom:calc(var(--tabh) + var(--safe-b) + 16px);overscroll-behavior-y:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+.top{position:sticky;top:0;z-index:30;background:var(--bg);padding:calc(var(--safe-t) + 8px) 12px 8px;border-bottom:1px solid var(--line)}
+.daterow{display:flex;align-items:center;gap:6px}
+.iconbtn{min-width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-size:20px;line-height:1}
+.datebtn{flex:1;height:44px;display:flex;align-items:center;justify-content:center;font-size:15px;white-space:nowrap;border-radius:12px;border:1px solid var(--line);background:var(--card);font-weight:600;position:relative;overflow:hidden}
+.datebtn input{position:absolute;inset:0;opacity:0;width:100%;height:100%}
+.todaybtn{height:44px;padding:0 14px;border-radius:12px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-weight:600}
+.totals{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-top:8px}
+.big{font-size:30px;font-weight:700;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.big small{font-size:14px;font-weight:600;color:var(--muted);margin-left:4px}
+.sub{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.searchwrap{position:sticky;top:var(--toph,120px);z-index:25;background:var(--bg);padding:8px 12px;border-bottom:1px solid var(--line)}
+.searchrow{display:flex;gap:6px;align-items:center}
+.search{flex:1;min-width:0;height:48px;border-radius:12px;border:1px solid var(--line);background:var(--card);padding:0 14px;font-size:16px}
+.search:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.qty{display:flex;align-items:center;border:1px solid var(--line);border-radius:12px;background:var(--card);height:48px}
+.qty button{width:40px;height:46px;border:0;background:none;font-size:22px}
+.qty input{width:36px;text-align:center;border:0;background:none;font-weight:700;font-size:17px;padding:0}
+.results{position:absolute;left:12px;right:12px;top:100%;max-height:55vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.res{display:flex;align-items:center;gap:10px;padding:12px;border-bottom:1px solid var(--line);min-height:56px}
+.res:last-child{border-bottom:0}
+.res.hi{background:var(--soft)}
+.res .main{flex:1;min-width:0}
+.res .nm{font-weight:600}
+.res .meta{font-size:13px;color:var(--muted)}
+.rv{font-weight:700;font-variant-numeric:tabular-nums}
+.pin{border:1px solid var(--line);background:none;border-radius:10px;height:36px;padding:0 10px;font-size:13px}
+.pin.on{background:var(--soft);border-color:var(--accent);color:var(--accent)}
+main{padding:12px}
+h2{font-size:15px;margin:18px 4px 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;justify-content:space-between}
+h2 button{text-transform:none;letter-spacing:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media (min-width:560px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (min-width:860px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.tile{position:relative;min-height:72px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);text-align:left;padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;gap:4px;user-select:none}
+.tile:active{transform:scale(.97);background:var(--soft)}
+.tile .nm{font-weight:600;font-size:15px;line-height:1.2}
+.tile .meta{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tile .cnt{position:absolute;top:6px;right:8px;font-size:12px;font-weight:700;color:var(--accent)}
+.tile.combo{border-style:dashed}
+.pinedit{display:flex;gap:6px;margin-top:6px}
+.pinedit button{flex:1;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--bg)}
+.chipbtn{height:36px;border-radius:999px;border:1px solid var(--line);background:var(--card);padding:0 14px;font-size:14px}
+.chipbtn.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.list{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.li{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);min-height:60px}
+.li:last-child{border-bottom:0}
+.li .main{flex:1;min-width:0}
+.li .nm{font-weight:600;overflow-wrap:anywhere}
+.li .meta{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.step{display:flex;align-items:center;gap:2px}
+.step button{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:20px}
+.step span{min-width:28px;text-align:center;font-weight:700}
+.del{height:40px;border-radius:10px;border:1px solid var(--line);background:none;color:var(--danger);padding:0 10px;font-size:13px}
+.totalrow{display:flex;justify-content:space-between;padding:12px;font-weight:700;background:var(--soft)}
+.banner{background:var(--warn-bg);color:var(--warn-ink);border-radius:var(--r);padding:12px;display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:8px}
+.banner button{height:40px;border-radius:10px;border:0;background:var(--warn-ink);color:var(--warn-bg);padding:0 12px;font-weight:600}
+.seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px}
+.seg button{flex:1;height:40px;border:0;border-radius:9px;background:none;font-weight:600;font-size:14px}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+.filters{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+select,.field{height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);padding:0 12px;font-size:16px;min-width:0}
+.filters select{flex:1}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:right;font-size:14px}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:600;font-size:12px;user-select:none;cursor:pointer;white-space:nowrap}
+th.sorted{color:var(--accent)}
+td a{color:var(--accent);text-decoration:none;font-weight:600}
+.tablewrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:var(--r)}
+.chart{display:flex;align-items:flex-end;gap:4px;height:140px;padding:8px 4px 0}
+.chart .col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px}
+.chart .b{width:100%;background:var(--bar);border-radius:6px 6px 2px 2px;min-height:2px}
+.chart .b.zero{background:var(--line)}
+.chart .l{font-size:10px;color:var(--muted)}
+.chart .v{font-size:9px;color:var(--muted);font-variant-numeric:tabular-nums}
+.stack{display:flex;flex-direction:column;gap:8px}
+.btn{height:48px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-weight:600;padding:0 14px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--danger)}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+.btnrow .btn{flex:1 1 140px}
+textarea{width:100%;min-height:110px;border-radius:12px;border:1px solid var(--line);background:var(--card);padding:10px;font:12px/1.4 ui-monospace,Menlo,monospace}
+label.row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px}
+.note{font-size:13px;color:var(--muted)}
+.muted{color:var(--muted)}
+.toast{position:fixed;left:12px;right:12px;bottom:calc(var(--tabh) + var(--safe-b) + 10px);z-index:50;background:#111827;color:#fff;border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.toast span{flex:1;font-size:14px}
+.toast button{height:40px;border:0;border-radius:10px;background:#fff;color:#111827;font-weight:700;padding:0 14px}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:var(--safe-b)}
+.tabs button{flex:1;height:var(--tabh);border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:600;color:var(--muted)}
+.tabs button.on{color:var(--accent)}
+.tabs svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.formgrid .full{grid-column:1/-1}
+.formgrid input{width:100%}
+.empty{padding:16px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+<header class="top" id="top">
+  <div class="daterow">
+    <button class="iconbtn" id="prevDay" aria-label="Previous day">‹</button>
+    <label class="datebtn"><span id="dateLabel"></span><input type="date" id="dateInput" aria-label="Choose date"></label>
+    <button class="iconbtn" id="nextDay" aria-label="Next day">›</button>
+    <button class="todaybtn" id="todayBtn">Today</button>
+  </div>
+  <div class="totals">
+    <div class="big" id="dayTotal">0.00<small>wRVU</small></div>
+    <div class="sub" id="subTotals"></div>
+  </div>
+</header>
+
+<div class="searchwrap" id="searchwrap">
+  <div class="searchrow">
+    <input class="search" id="search" type="search" inputmode="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="CPT or exam: ct abd pel w, 74177">
+    <div class="qty"><button id="qtyMinus" aria-label="Decrease quantity">−</button><input id="qty" inputmode="numeric" value="1" aria-label="Quantity"><button id="qtyPlus" aria-label="Increase quantity">+</button></div>
+  </div>
+  <div class="results hidden" id="results" role="listbox"></div>
+</div>
+
+<main id="view"></main>
+
+<div class="toast hidden" id="toast"><span id="toastMsg"></span><button id="toastBtn">Undo</button></div>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="today" class="on"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Today</button>
+  <button data-tab="history"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>History</button>
+  <button data-tab="codes"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Codes</button>
+  <button data-tab="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
+</nav>
+
+<script src="codes.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
